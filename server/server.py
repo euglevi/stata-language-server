@@ -1,25 +1,23 @@
 import server.utils as utils
-from pygls.lsp.types import (
-    Diagnostic, DiagnosticSeverity, ConfigurationItem, ConfigurationParams,
-    DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams,
-    DidChangeConfigurationParams, CompletionList, CompletionParams, Location, DefinitionParams,
-    Hover, HoverParams, Position, Range
-)
-from pygls.lsp.methods import (
-    COMPLETION, HOVER, DEFINITION, TEXT_DOCUMENT_DID_CHANGE, TEXT_DOCUMENT_DID_CLOSE,
-    TEXT_DOCUMENT_DID_OPEN, WORKSPACE_DID_CHANGE_CONFIGURATION
-)
-from pygls.server import LanguageServer
+from pygls.lsp.types.basic_structures import Diagnostic, DiagnosticSeverity
+from pygls.lsp.types.workspace import (ConfigurationItem, ConfigurationParams,
+     DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams,
+     DidChangeConfigurationParams)
 from typing import Optional
 import re
-from server.constants import (
-    MAX_LINE_LENGTH_MESSAGE, OPERATOR_REGEX, STRING, STAR_COMMENTS,
-    WHITESPACE_AFTER_COMMA_REGEX, BLOCK_COMMENTS_BG, BLOCK_COMMENTS_END, INLINE_COMM_RE,
-    LOOP_START, LOOP_END, INDENT_REGEX, OP_WHITESPACE_MESSAGE, COMMA_WHITESPACE_MESSAGE,
-    INAP_INDENT_MESSAGE, MAX_LINE_LENGTH_SEVERITY, MAX_LINE_LENGTH, INDENT_SPACE,
-    OP_WHITESPACE_SEVERITY, COMMA_WHITESPACE_SEVERITY, INAP_INDENT_SEVERITY,
-    ENABLECOMPLETION, ENABLEDOCSTRING, ENABLESTYLECHECKING
-)
+from pygls.lsp.methods import (COMPLETION, HOVER, DEFINITION, TEXT_DOCUMENT_DID_CHANGE,
+                               TEXT_DOCUMENT_DID_CLOSE,
+                               TEXT_DOCUMENT_DID_OPEN, WORKSPACE_DID_CHANGE_CONFIGURATION)
+from pygls.server import LanguageServer
+from pygls.lsp.types import (CompletionList, CompletionParams, Location, DefinitionParams,
+                             Hover, HoverParams, Position, Range)
+from server.constants import (MAX_LINE_LENGTH_MESSAGE, OPERATOR_REGEX, STRING, STAR_COMMENTS,
+                              WHITESPACE_AFTER_COMMA_REGEX, OPERATOR_REGEX, BLOCK_COMMENTS_BG,
+                              BLOCK_COMMENTS_END, INLINE_COMM_RE, LOOP_START, LOOP_END, INDENT_REGEX,
+                              OP_WHITESPACE_MESSAGE, COMMA_WHITESPACE_MESSAGE, INAP_INDENT_MESSAGE,
+                              MAX_LINE_LENGTH_SEVERITY, MAX_LINE_LENGTH, INDENT_SPACE,
+                              OP_WHITESPACE_SEVERITY, COMMA_WHITESPACE_SEVERITY, INAP_INDENT_SEVERITY,
+                              ENABLECOMPLETION, ENABLEDOCSTRING, ENABLESTYLECHECKING)
 
 
 class StataLanguageServer(LanguageServer):
@@ -53,26 +51,28 @@ async def did_open(ls, params: DidOpenTextDocumentParams):
 
 
 @stata_server.feature(COMPLETION)
-def completions(params: Optional[CompletionParams] = None) -> Optional[CompletionList]:
+def completions(params: Optional[CompletionParams] = None) -> CompletionList:
     """Return completion items."""
     if ENABLECOMPLETION:
         return COMLIST
-    return None
+    else:
+        return None
 
 
 @stata_server.feature(HOVER)
-def hover(ls, params: HoverParams) -> Optional[Hover]:
+def hover(ls, params: HoverParams):
     """Display Markdown documentation for the element under the cursor."""
     if ENABLEDOCSTRING:
         document = ls.workspace.get_document(params.text_document.uri)
         word = document.word_at_position(params.position)  # return start and end positions
         docstring = utils.getDocstringFromWord(word)
         return Hover(contents=docstring)
-    return None
+    else:
+        return None
 
 
 @stata_server.feature(DEFINITION)
-def goto_definition(ls, params: DefinitionParams) -> Optional[Location]:
+def goto_definition(ls, params: DefinitionParams):
     """
         Go to the last definition of a var: g(enerate) varname
     """
@@ -82,7 +82,7 @@ def goto_definition(ls, params: DefinitionParams) -> Optional[Location]:
     origin_line = origin_pos.line  # start from 0
     origin_varname = document.word_at_position(origin_pos)
     lenOrigin = len(origin_varname)
-    genPattern = r'\b(g(enerate|enerat|enera|ener|ene|en|e)?|egen)\s+((byte|int|long|float|double|str[1-9]?[0-9]?[0-9]?[0-9]?|strL)\s+)?([^=\s]+)\s*((==)|(=))'
+    genPattern = '\\b(g(enerate|enerat|enera|ener|ene|en|e)?|egen)\\s+((byte|int|long|float|double|str[1-9]?[0-9]?[0-9]?[0-9]?|strL)\\s+)?([^=\\s]+)\\s*((==)|(=))'
 
     if origin_line > 0:
         searched_area = document.lines
@@ -92,15 +92,15 @@ def goto_definition(ls, params: DefinitionParams) -> Optional[Location]:
                 targetLine = i
                 targetStChar = searched_area[i].find(origin_varname)
                 targetEndChar = targetStChar + lenOrigin
-                target_range = Range(
-                    start=Position(line=targetLine, character=targetStChar),
-                    end=Position(line=targetLine, character=targetEndChar)
-                )
+                target_range = Range(start=Position(line=targetLine,
+                                                    character=targetStChar),
+                                     end=Position(line=targetLine, character=targetEndChar))
                 return Location(uri=uri, range=target_range)
     return None
 
 
-def create_diagnostic(line: int, stIndex: int, enIndex: int, msg: str, severity: DiagnosticSeverity) -> Diagnostic:
+def create_diagnostic(line: int, stIndex: int, enIndex: int,
+                      msg: str, severity: DiagnosticSeverity) -> Diagnostic:
     """Create a Diagnostic"""
     range = Range(
         start=Position(line=line, character=stIndex),
@@ -132,7 +132,7 @@ def refresh_diagnostics(ls: StataLanguageServer, params):
     doc = ls.workspace.get_document(uri)
     diagnostics = []
 
-    LINE_STATE = {"isInComm": False, "loopLevel": 0}  # cross-line state
+    LINE_STATE = {"isInComm": False, "loopLevel": 0}  # cross line state
     for lineno, line in enumerate(doc.lines):
         # Max line length
         if len(line) > MAX_LINE_LENGTH:
@@ -140,26 +140,28 @@ def refresh_diagnostics(ls: StataLanguageServer, params):
         skip_tokens = []
 
         # Comment block
-        if not LINE_STATE['isInComm']:
+        if LINE_STATE['isInComm'] is False:
             match = re.match(BLOCK_COMMENTS_BG, line)
-            if match:
-                if match.group(1) == '':
-                    LINE_STATE['isInComm'] = True
-                    continue
-                else:
-                    LINE_STATE['isInComm'] = True
-                    start, end = match.start(1), match.end(1)  # python index
-                    skip_tokens.append([start, end])
+            if match is None:
+                pass
+            elif match.group(1) == '':
+                LINE_STATE['isInComm'] = True
+                continue
+            else:
+                LINE_STATE['isInComm'] = True
+                start, end = match.start(1), match.end(1)  # python index
+                skip_tokens.append([start, end])
         else:
             match = re.match(BLOCK_COMMENTS_END, line)
-            if match:
-                if match.group(1) == '':
-                    LINE_STATE['isInComm'] = False
-                    continue
-                else:
-                    LINE_STATE['isInComm'] = False
-                    start, end = match.start(1), match.end(1)
-                    skip_tokens.append([start, end])
+            if match is None:
+                continue
+            elif match.group(1) == '':
+                LINE_STATE['isInComm'] = False
+                continue
+            else:
+                LINE_STATE['isInComm'] = False
+                start, end = match.start(1), match.end(1)
+                skip_tokens.append([start, end])
 
         # Star Comments
         if re.match(STAR_COMMENTS, line):
@@ -192,7 +194,7 @@ def refresh_diagnostics(ls: StataLanguageServer, params):
             if not inSkipTokens(start, end, skip_tokens):
                 if end - start != 1:
                     diagnostics.append(
-                        create_diagnostic(lineno, end, end, COMMA_WHITESPACE_MESSAGE, COMMA_WHITESPACE_SEVERITY))
+                            create_diagnostic(lineno, end, end, COMMA_WHITESPACE_MESSAGE, COMMA_WHITESPACE_SEVERITY))
 
         # Loop Indent Checker
         if re.match(LOOP_END, line) and LINE_STATE['loopLevel'] > 0:
@@ -203,8 +205,7 @@ def refresh_diagnostics(ls: StataLanguageServer, params):
             start, end = match.start(1), match.end(1)
             actual_space = end - start
             if actual_space != LINE_STATE['loopLevel'] * INDENT_SPACE:
-                diagnostics.append(
-                    create_diagnostic(lineno, end, end, INAP_INDENT_MESSAGE, INAP_INDENT_SEVERITY))
+                diagnostics.append(create_diagnostic(lineno, end, end, INAP_INDENT_MESSAGE, INAP_INDENT_SEVERITY))
 
         if re.match(LOOP_START, line):
             LINE_STATE['loopLevel'] += 1
@@ -228,7 +229,7 @@ def get_configuration_callback(ls: StataLanguageServer, *args):
             ENABLEDOCSTRING = config[0].get('enableDocstring')
             ENABLESTYLECHECKING = config[0].get('enableStyleChecking')
         except Exception as e:
-            ls.show_message_log(f'Error occurred: {e}')
+            ls.show_message_log(f'Error ocurred: {e}')
     ls.get_configuration(ConfigurationParams(items=[
         ConfigurationItem(
             scope_uri='',
