@@ -1,0 +1,2 @@
+[console_scripts]
+stata-language-server = server.__main__:main

@@ -1,0 +1,16 @@
+LICENSE
+README.md
+setup.py
+server/__init__.py
+server/__main__.py
+server/constants.py
+server/server.py
+server/utils.py
+server/tests/__init__.py
+server/tests/test_features.py
+stata_language_server.egg-info/PKG-INFO
+stata_language_server.egg-info/SOURCES.txt
+stata_language_server.egg-info/dependency_links.txt
+stata_language_server.egg-info/entry_points.txt
+stata_language_server.egg-info/requires.txt
+stata_language_server.egg-info/top_level.txt
