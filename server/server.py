@@ -322,6 +322,7 @@ async def refresh_config(ls: StataLanguageServer, params: DidChangeConfiguration
             constants.INDENT_SPACE = int(settings.get("setIndentSpace", 4))
             constants.ENABLECOMPLETION = bool(settings.get("enableCompletion", False))
             constants.ENABLEDOCSTRING = bool(settings.get("enableDocstring", True))
+            constants.ENABLEFORMATTING = bool(settings.get("enableFormatting", True))
             constants.ENABLESTYLECHECKING = bool(
                 settings.get("enableStyleChecking", True)
             )
@@ -348,7 +349,7 @@ def formatting(
             # Call your formatter on the document text
             formatted_text = format_stata_code(
                 text,
-                max_line_length=constants.FORMATTING_MAX_LINE_LENGTH,
+                max_line_length=constants.MAX_LINE_LENGTH,
                 indent_size=constants.INDENT_SPACE,
             )
 
