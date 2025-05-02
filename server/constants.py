@@ -8,6 +8,8 @@ INDENT_SPACE = 4
 ENABLECOMPLETION = True
 ENABLEDOCSTRING = True
 ENABLESTYLECHECKING = True
+ENABLEFORMATTING = True
+FORMATTING_MAX_LINE_LENGTH = 72
 
 # Diagnostic Regex
 STAR_COMMENTS = re.compile(r'^s*(\*)')
@@ -16,10 +18,14 @@ BLOCK_COMMENTS_BG = re.compile(r'.*?(/\*.*)')
 BLOCK_COMMENTS_END = re.compile(r'(.*\*/).*')
 INLINE_COMMENTS = frozenset(['//'])
 INLINE_COMM_RE = re.compile(r'.*(//.*)')
+INLINE_COMM_LONG = re.compile(r'.*///.*')
 STRING = re.compile(r'".*?"')
-OPERATOR_REGEX = re.compile(r'(?:[^,\s])(\s*)(?:[-+*/|!<=>%&^]+)(\s*)')
+OPERATOR_REGEX = re.compile(r'(?:[^,\s])(\s*)(?:(?!\!\w)(?:%(?!\d)(?!t[a-zA-Z])|[|!<=>^&]+))(\s*)')
+# OPERATOR_REGEX = re.compile(r'(?:[^,\s])(\s*)(?:(?!\!\w)[|!<=>%&^]+)(\s*)')
+# OPERATOR_REGEX = re.compile(r'(?:[^,\s])(\s*)(?:[|!<=>%&^]+)(\s*)')
 WHITESPACE_AFTER_COMMA_REGEX = re.compile(r'[,](\s*)')
-LOOP_START = re.compile(r'(^\s*)(?:foreach|forvalue).*\{')
+LOOP_START = re.compile(r'(^\s*).*\{[^}]*$')
+# LOOP_START = re.compile(r'(^\s*)(?:foreach|forvalue).*\{')
 LOOP_END = re.compile(r'(^\s*)\}\s*')
 INDENT_REGEX = re.compile(r'([ \t]*)\S+')
 EXTRANEOUS_WHITESPACE_REGEX = re.compile(r'[\[({] | [\]}),;]| :(?!=)')
