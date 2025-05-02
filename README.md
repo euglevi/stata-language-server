@@ -46,11 +46,11 @@ return {
 
 ## Description
 
-An extension for [Stata](https://www.stata.com/) on VS Code. It provides codestyle checking, goto-definition, syntax tips and auto completion.
+An extension for [Stata](https://www.stata.com/) on Neovim. It provides codestyle checking, goto-definition, syntax tips, formatting and auto completion.
 
 Developed based on [language server](https://microsoft.github.io/language-server-protocol/), depending on Third-party Python library [pygls](https://github.com/openlawlibrary/pygls).
 
-> Note: Python(>=3.6) is required on local system before extension installing. Another extension [Stata Enhanced](https://marketplace.visualstudio.com/items?itemName=kylebarron.stata-enhanced) is recommanded for syntax highlight since Stata Language Server doesn't provide this feature.
+> Note: Another plugin is recommanded for syntax highlight since Stata Language Server doesn't provide this feature.
 
 ## Supported Features
 
