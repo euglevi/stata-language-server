@@ -1,6 +1,5 @@
 import re
 
-
 class StataFormatter:
     def __init__(self, max_line_length=72, indent_size=4):
         self.max_line_length = max_line_length
@@ -8,65 +7,72 @@ class StataFormatter:
 
     def format_code(self, code: str) -> str:
         """Format Stata code according to style rules."""
-        # Split into lines and process each
         lines = code.split("\n")
-        lines_reordered = []
+        lines_reordered, comments_reordered = self._reorder_lines(lines)
+        formatted_lines = self._process_lines(lines_reordered, comments_reordered)
+        formatted_lines_indented = self._apply_indentation(formatted_lines)
+        return "\n".join(formatted_lines_indented)
 
-        # Reorder lines to recombine split lines with /// continuation
+    def _reorder_lines(self, lines: list[str]) -> tuple[list[str], list[str]]:
+        """Reorder lines to handle `///` continuations and comments."""
+        lines_reordered = []
+        comments_reordered = []
+
         for line in lines:
             if lines_reordered:
                 if "///" in lines_reordered[-1] and not re.match(
                     r"^\*\s", lines_reordered[-1]
                 ):
+                    comments_reordered[-1] += (
+                        lines_reordered[-1].split("///", 1)[1].strip()
+                    )
                     lines_reordered[-1] = (
-                        lines_reordered[-1].replace("///", "").strip()
+                        lines_reordered[-1].split("///", 1)[0].strip()
                         + " "
                         + line.strip()
                     )
                 else:
                     lines_reordered.append(line)
+                    comments_reordered.append("")
             else:
                 lines_reordered.append(line)
+                comments_reordered.append("")
 
+        return lines_reordered, comments_reordered
+
+    def _process_lines(self, lines: list[str], comments: list[str]) -> list[str]:
+        """Process and format lines, handling long lines and comments."""
         formatted_lines = []
+
+        for line, comment in zip(lines, comments):
+            stripped = line.strip()
+            if not stripped:
+                formatted_lines.append(comment)
+                continue
+
+            formatted = self._format_line(stripped)
+            broken_lines = self._break_long_line(formatted, comment)
+            formatted_lines.extend(broken_lines)
+
+        return formatted_lines
+
+    def _apply_indentation(self, lines: list[str]) -> list[str]:
+        """Apply indentation rules to formatted lines."""
         formatted_lines_indented = []
         open_parenthesis = 0
 
-        for line in lines_reordered:
-            # Strip leading/trailing whitespace
-            stripped = line.strip()
-
-            # Skip empty lines but preserve them
-            if not stripped:
-                formatted_lines.append("")
-                continue
-
-            # Process and format the line
-            formatted = self._format_line(stripped)
-
-            # Handle long lines - break them with ///
-            broken_lines = self._break_long_line(formatted)
-            formatted_lines.extend(broken_lines)
-            # formatted_lines.append(formatted)
-
-        for i, line in enumerate(formatted_lines):
-            # Check for indentation conditions
+        for i, line in enumerate(lines):
             if (i > 0) and (
-                (
-                    "{" in formatted_lines_indented[i - 1]
-                    and "}" not in formatted_lines_indented[i - 1]
-                )
-                and ("///" not in formatted_lines_indented[i - 1])
+                "{" in formatted_lines_indented[i - 1]
+                and "}" not in formatted_lines_indented[i - 1]
             ):
-                line = " " * self.indent_size + line
-                open_parenthesis = 1
-            elif (
-                (i > 0)
-                and (formatted_lines_indented[i - 1].startswith(" " * self.indent_size))
-                and (open_parenthesis == 1)
-                and ("}" not in line)
-            ):
-                line = " " * self.indent_size + line
+                open_parenthesis += 1
+                line = " " * open_parenthesis * self.indent_size + line
+            elif (i > 0) and (open_parenthesis > 0) and ("}" not in line):
+                line = " " * open_parenthesis * self.indent_size + line
+            elif (i > 0) and ("}" in line) and ("{" not in line):
+                open_parenthesis -= 1
+                line = " " * open_parenthesis * self.indent_size + line
 
             if (
                 (i > 0)
@@ -75,12 +81,9 @@ class StataFormatter:
             ):
                 line = " " * self.indent_size + line
 
-            if (i > 0) and ("}" in line):
-                open_parenthesis = 0
-
             formatted_lines_indented.append(line)
 
-        return "\n".join(formatted_lines_indented)
+        return formatted_lines_indented
 
     def _format_line(self, line: str) -> str:
         """Format a single line of Stata code."""
@@ -97,11 +100,17 @@ class StataFormatter:
 
         return line.strip()
 
-    def _break_long_line(self, line: str) -> list[str]:
+    def _break_long_line(self, line: str, comment: str) -> list[str]:
         """Break long lines at logical points, adding /// for continuation."""
         parts = line.split("//", 1)
         remaining = parts[0]
-        remaining_comment = " //" + parts[1] if len(parts) > 1 else ""
+        remaining_comment = (
+            " //" + comment + parts[1]
+            if len(parts) > 1
+            else " // " + comment
+            if comment
+            else ""
+        )
 
         if len(remaining) <= self.max_line_length or re.search(r"^\*\s", remaining):
             return [remaining + remaining_comment]
@@ -205,7 +214,6 @@ class StataFormatter:
                 return segment.strip() + " ///", text[break_pos:]
 
         return None
-
 
 def format_stata_code(
     code: str, max_line_length: int = 72, indent_size: int = 4

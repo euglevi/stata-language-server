@@ -92,7 +92,7 @@ class StataFormatter:
         line = re.sub(r"\s*,\s*", ", ", line)
 
         # Format operators with spaces around them
-        line = re.sub(r"\s*(==|!=|>=|<=|\|\||>|<|=|&|\|)\s*", r" \1 ", line)
+        line = re.sub(r"\s*(==|!=|~=|>=|<=|\|\||>|<|=|&|\|)\s*", r" \1 ", line)
         # line = re.sub(r"(?<![=!])\s*([=|&])(?![=!])\s*", r" \1 ", line)
 
         # Fix double spaces
